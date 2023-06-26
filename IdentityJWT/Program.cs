@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WeaponAuthorization.Data;
 
@@ -13,10 +14,9 @@ builder.Services.AddDbContext<WeaponContext>(options =>
 builder.Services.AddDbContext<HeroIdentityContext>(options =>
     options.UseSqlServer(connString, action => action.MigrationsHistoryTable("_MigrationsHistory", "Identity"))
 );
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<HeroIdentityContext>();
 builder.Services.AddControllers();
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
