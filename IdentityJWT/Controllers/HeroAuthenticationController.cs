@@ -45,6 +45,10 @@ namespace IdentityJWT.Controllers
             {
                 _logger.Log(LogLevel.Information, "login successfully"); //phai la infomation
                 //return Ok(HttpContext.User);
+                if (HttpContext.User.Identity.IsAuthenticated) //jwt se ko truyen user authenticated vao httpContext.User
+                {
+                    _logger.Log(LogLevel.Information, "user signed in");
+                }
                 return CreateToken(heroDTO);
             }
             return NotFound("Not found account");
@@ -59,12 +63,26 @@ namespace IdentityJWT.Controllers
                 _logger.Log(LogLevel.Information, "password mismatch");
                 return BadRequest("password mismatch");
             }
-            await _userManager.CreateAsync(AuthenticationHelper.CreateNewUser(heroDTO), heroDTO.Password);
-            return Ok(heroDTO);
+            var userCreated = AuthenticationHelper.CreateNewUser(heroDTO);
+            var result = await _userManager.CreateAsync(userCreated, heroDTO.Password);
+            if (result.Succeeded)
+            {
+                await _userManager.AddClaimAsync(userCreated, new Claim(ClaimTypes.Name, heroDTO.UserName)); //neu ko co await co the gay ra thread concurrency
+                await _userManager.AddClaimAsync(userCreated, new Claim(ClaimTypes.Role, "admin"));
+                var claims = (await _userManager.GetClaimsAsync(userCreated)).ToList();
+                return Ok(claims);
+            }
+            return Conflict(result.Errors.ToList().ToString());
         }
 
-        [HttpPost("Logout")]
-        [Authorize(Roles = "admin")]
+        [HttpGet("Logout")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout()
+        {            
+           _logger.Log(LogLevel.Information, "signed in");
+           await this._signInManager.SignOutAsync();
+           return Ok("Sign out successfully");
+        }
         private string CreateToken(HeroDTO heroDTO)
         {
             List<Claim> claims = HttpContext.User.Claims.ToList();
